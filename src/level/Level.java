@@ -4,6 +4,8 @@ import java.awt.Point;
 import java.awt.Rectangle;
 import java.awt.image.BufferedImage;
 import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -12,14 +14,12 @@ import java.util.Iterator;
 
 import javax.imageio.ImageIO;
 
-import engine.Main;
 import entity.Entity;
 import entity.Mob;
-import event.Event;
 import graphics.Render;
 import graphics.Sprite;
-import graphics.SpriteSheet;
 import launcher.Launcher;
+import launcher.ResourcesDownloader;
 import level.levels.EmptyLotLevel;
 import level.levels.RoadInFrontOfLotLevel;
 
@@ -47,13 +47,13 @@ public abstract class Level {
 	public Point spawnPoint;
 
 	public Tile[][] tiles;
-	public Event[][] events;
+	public String[][] notifiers;
 	public ArrayList<Entity> entities = new ArrayList<Entity>();
 
 	public Level(String path, Sprite header, Rectangle exit, Level nextLevel, Point spawnPoint) {
 		BufferedImage img = null;
 		try {
-			img = ImageIO.read(SpriteSheet.class.getResource(path));
+			img = ImageIO.read(new File(ResourcesDownloader.resPath + path));
 		} catch (IOException e) {
 			System.err.println("This level doesn't exist: \"" + path + "\"\nShutting down.");
 			System.exit(1);
@@ -68,9 +68,9 @@ public abstract class Level {
 		for (int y = 0; y < height; y++)
 			for (int x = 0; x < width; x++)
 				tiles[x][y] = Tile.getTile(img.getRGB(x, y));
-		events = new Event[width][height];
+		notifiers = new String[width][height];
 		loadEvents(path);
-		this.header = header;
+		this.header = header == null ? new Sprite(1, 1, Render.ALPHA) : header;
 		this.exit = exit;
 		this.nextLevel = nextLevel;
 		this.spawnPoint = spawnPoint;
@@ -79,20 +79,15 @@ public abstract class Level {
 	private void loadEvents(String path) {
 		for (int y = 0; y < height; y++)
 			for (int x = 0; x < width; x++)
-				events[x][y] = Event.defaultEvent;
-		try (BufferedReader br = new BufferedReader(new FileReader(Level.class.getResource(path.replace("levels", "text/" + Launcher.lang).replace(".png", ".events")).getFile()))) {
+				notifiers[x][y] = null;
+		try (BufferedReader br = new BufferedReader(new FileReader(ResourcesDownloader.resPath + (path.replace("levels", "text/" + Launcher.lang).replace(".png", ".events"))))) {
 			String line = br.readLine();
 			while (line != null) {
 				String[] data = line.split("~");
-				addEvent(Integer.parseInt(data[0]), Integer.parseInt(data[1]), new Event() {
-
-					public void occur() {
-						Main.game.popup.push(data[2]);
-					}
-				});
+				addEvent(Integer.parseInt(data[0]), Integer.parseInt(data[1]), data[2]);
 				line = br.readLine();
 			}
-		} catch (NullPointerException e) {
+		} catch (FileNotFoundException e) {
 			System.out.println("No events found for level \"" + path + "\" for language " + Launcher.lang);
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -105,8 +100,8 @@ public abstract class Level {
 		if (e instanceof Mob) ((Mob) e).loadTileMap(this);
 	}
 
-	public void addEvent(int x, int y, Event event) {
-		events[x][y] = event;
+	public void addEvent(int x, int y, String event) {
+		notifiers[x][y] = event;
 	}
 
 	public void removeEntity(Entity e) {

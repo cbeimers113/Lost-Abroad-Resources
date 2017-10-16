@@ -2,7 +2,6 @@ package level;
 
 import java.util.ArrayList;
 
-import engine.TextIO;
 import graphics.Sprite;
 
 public abstract class Tile {
@@ -31,6 +30,7 @@ public abstract class Tile {
 	public static final CoastTopLeft coastTopLeftTile = new CoastTopLeft();
 	public static final CoastBottomRight coastBottomRightTile = new CoastBottomRight();
 	public static final CoastBottomLeft coastBottomLeftTile = new CoastBottomLeft();
+	public static final PosterBrickTile posterBrickTile = new PosterBrickTile();
 
 	public Sprite[] frames;
 	public Sprite sprite;
@@ -71,7 +71,7 @@ public abstract class Tile {
 	}
 
 	public String toString() {
-		return TextIO.addSpacesAtCapitals(name.endsWith("Tile") ? name.substring(0, name.length() - "Tile".length()) : name);
+		return LevelHeaders.addSpacesAtCapitals(name.endsWith("Tile") ? name.substring(0, name.length() - "Tile".length()) : name);
 	}
 
 	public static Tile getTile(int colour) {

@@ -91,7 +91,7 @@ public class Sprite {
 		if (text.contains("\n")) {
 			lines = text.split("\n");
 			for (int i = 0; i < lines.length; i++)
-				lines[i] = lines[i].substring(0, lines[i].length() - 2);
+				lines[i] = lines[i].substring(0, lines[i].length() - 1);
 		}
 		BufferedImage img = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
 		Graphics g = img.getGraphics();
@@ -104,6 +104,14 @@ public class Sprite {
 			g.drawString(line, 0, p += g.getFontMetrics().getHeight());
 		g.dispose();
 		pixels = ((DataBufferInt) img.getRaster().getDataBuffer()).getData();
+	}
+
+	public Sprite(int w, int h, int col) {
+		this.width = w;
+		this.height = h;
+		this.pixels = new int[w * h];
+		for (int i = 0; i < pixels.length; i++)
+			pixels[i] = col;
 	}
 
 	public Sprite resize(int scale) {
@@ -128,7 +136,7 @@ public class Sprite {
 		if (text.contains("\n")) {
 			lines = text.split("\n");
 			for (int i = 0; i < lines.length; i++)
-				lines[i] = lines[i].substring(0, lines[i].length() - 2);
+				lines[i] = lines[i].substring(0, lines[i].length() - 1);
 		}
 		BufferedImage img = new BufferedImage(1, 1, BufferedImage.TYPE_INT_RGB);
 		Graphics g = img.getGraphics();
@@ -141,7 +149,7 @@ public class Sprite {
 		int h = (fm.getHeight()) * lines.length + 0;
 		g.dispose();
 		return new int[] {
-				w, h
+				w == 0 ? 1 : w, h == 0 ? 1 : h
 		};
 	}
 

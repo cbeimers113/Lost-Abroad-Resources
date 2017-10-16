@@ -4,7 +4,6 @@ import java.awt.Rectangle;
 
 import engine.Input;
 import engine.Main;
-import event.Event;
 import graphics.Render;
 import graphics.Sprite;
 import level.Level;
@@ -36,8 +35,8 @@ public class Player extends Mob {
 		}
 		if (input.keyEscape) Main.game.getLevel().hideHeader = true;
 		if (input.keyInteract && input.leftClick && isNear(input.mouseTileX, input.mouseTileY)) {
-			Event event = level.events[input.mouseTileX][input.mouseTileY];
-			if (event != null) event.occur();
+			String notifier = level.notifiers[input.mouseTileX][input.mouseTileY];
+			if (notifier != null) Main.game.popup.say(notifier);
 			input.leftClick = false;
 		}
 		if (level.exit != null && level.nextLevel != null && level.exit.intersects(new Rectangle(x, y, 2, 2))) {

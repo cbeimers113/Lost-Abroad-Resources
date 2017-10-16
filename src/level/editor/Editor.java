@@ -16,7 +16,9 @@ import java.awt.event.MouseWheelListener;
 import java.awt.image.BufferStrategy;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferInt;
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.PrintWriter;
 
@@ -33,16 +35,16 @@ import javax.swing.JMenu;
 import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
 import javax.swing.JRadioButton;
+import javax.swing.JSeparator;
+import javax.swing.SwingConstants;
 import javax.swing.UIManager;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
-import event.Event;
 import graphics.Render;
 import graphics.Sprite;
 import launcher.Launcher;
+import launcher.ResourcesDownloader;
 import level.Tile;
-import javax.swing.JSeparator;
-import javax.swing.SwingConstants;
 
 public class Editor {
 
@@ -55,13 +57,15 @@ public class Editor {
 
 	private int drawX;
 	private int drawY;
+	private int notifX;
+	private int notifY;
 	private int width = 30;
 	private int height = 18;
 	private int brushSize = 3;
 
 	private Tile[][] tiles = new Tile[width][height];
-	private Event[][] events = new Event[width][height];
-	private Event selectedEvent = null;
+	private String[][] notifiers = new String[width][height];
+	private String selectedEvent = null;
 	private BufferedImage img = new BufferedImage(cWidth, cHeight, BufferedImage.TYPE_INT_RGB);
 	private int[] pixels = ((DataBufferInt) img.getRaster().getDataBuffer()).getData();
 	private Render render = new Render(cWidth, cHeight);
@@ -69,7 +73,7 @@ public class Editor {
 	private JButton tileToDrawPreview;
 	private Tile chosenTile = Tile.grassTile;
 	private JFrame frmLevelEditor;
-	private String loadedDir = System.getProperty("user.dir");
+	private String loadedDir = ResourcesDownloader.resPath + "levels/";
 	private JComboBox<Tile> chooseTile;
 	private JRadioButton rdbtnTileSampler;
 	private JRadioButton rdbtnRemoveEvent;
@@ -124,15 +128,18 @@ public class Editor {
 				chooseTile.requestFocus();
 				isDrawing = false;
 			} else if (rdbtnAddEvent.isSelected()) {
-				events[drawX][drawY] = Event.emptyEvent;
+				notifiers[drawX][drawY] = "...";
 				isDrawing = false;
 			} else if (rdbtnRemoveEvent.isSelected()) {
-				events[drawX][drawY] = null;
+				notifiers[drawX][drawY] = null;
 				isDrawing = false;
 			} else if (rdbtnSelectEvent.isSelected()) {
-				if (events[drawX][drawY] != null) {
-					if (selectedEvent == null) selectedEvent = events[drawX][drawY];
-					else
+				if (notifiers[drawX][drawY] != null) {
+					if (selectedEvent == null) {
+						selectedEvent = notifiers[drawX][drawY];
+						notifX = drawX;
+						notifY = drawY;
+					} else
 						selectedEvent = null;
 					isDrawing = false;
 				} else
@@ -182,10 +189,10 @@ public class Editor {
 			for (int x = 0; x < width; x++)
 				try {
 					render.renderSprite(x << 5, y << 5, tiles[x][y].sprite2x);
-					if (events[x][y] != null) {
+					if (notifiers[x][y] != null) {
 						render.renderSprite((x << 5) + 9, (y << 5) - 2, eventIndicatorSprite);
 						if (selectedEvent == null) render.renderSprite(x << 5, y << 5, grayBox);
-						else if (selectedEvent == events[x][y]) render.renderSprite(x << 5, y << 5, box);
+						else if (selectedEvent == notifiers[x][y]) render.renderSprite(x << 5, y << 5, box);
 						else
 							render.renderSprite(x << 5, y << 5, grayBox);
 					}
@@ -322,17 +329,31 @@ public class Editor {
 		mntmOpen.addActionListener(new ActionListener() {
 
 			public void actionPerformed(ActionEvent e) {
-				JFileChooser fileChooser = new JFileChooser(System.getProperty("user.dir"));
+				JFileChooser fileChooser = new JFileChooser(loadedDir);
 				fileChooser.addChoosableFileFilter(new FileNameExtensionFilter("*.png", "png"));
 				if (fileChooser.showOpenDialog(mntmOpen) == JFileChooser.APPROVE_OPTION) {
 					try {
+						File file = fileChooser.getSelectedFile();
 						BufferedImage img = ImageIO.read(fileChooser.getSelectedFile());
 						if (img.getWidth() != width || img.getHeight() != height) throw new IllegalArgumentException("Level is not right dimension! (30x18)");
 						tiles = new Tile[width][height];
 						for (int y = 0; y < img.getHeight(); y++)
 							for (int x = 0; x < img.getWidth(); x++)
 								tiles[x][y] = Tile.getTile(img.getRGB(x, y));
-						loadedDir = fileChooser.getSelectedFile().getAbsolutePath();
+						loadedDir = file.getAbsolutePath();
+						File eventsFile = new File(file.getPath().replace("levels", "text/" + Launcher.lang).replace(".png", ".events"));
+						System.out.println("Loading Events: " + eventsFile.getPath());
+						if (!eventsFile.exists()) System.out.println("No events in language " + Launcher.lang + " found for this level");
+						else {
+							BufferedReader br = new BufferedReader(new FileReader(eventsFile));
+							String line = br.readLine();
+							while (line != null) {
+								String[] data = line.split("~");
+								notifiers[Integer.parseInt(data[0])][Integer.parseInt(data[1])] = data[2];
+								line = br.readLine();
+							}
+							br.close();
+						}
 					} catch (IOException ex) {
 						ex.printStackTrace();
 					}
@@ -358,13 +379,20 @@ public class Editor {
 							for (int x = 0; x < width; x++)
 								level.setRGB(x, y, tiles[x][y].colourCode);
 						ImageIO.write(level, "png", file);
-						File eventsFile = new File(file.getAbsolutePath().replace(".png", ".events"));
+						File eventsFile = new File(file.getPath().replace("levels", "text/" + Launcher.lang).replace(".png", ".events"));
+						System.out.println("Saving Events: " + eventsFile.getPath());
+						if (eventsFile.getParentFile() != null) eventsFile.getParentFile().mkdirs();
 						if (!eventsFile.exists()) eventsFile.createNewFile();
 						PrintWriter w = new PrintWriter(eventsFile);
+						int i = 0;
 						for (int y = 0; y < height; y++)
 							for (int x = 0; x < width; x++)
-								if (events[x][y] != null) w.println(x + "~" + y + "~" + events[x][y]);
+								if (notifiers[x][y] != null) {
+									w.println(x + "~" + y + "~" + notifiers[x][y]);
+									i++;
+								}
 						w.close();
+						if (i == 0) eventsFile.delete();
 					} catch (IOException ex) {
 						ex.printStackTrace();
 					}
@@ -404,12 +432,6 @@ public class Editor {
 		editorButtons.add(rdbtnTileSampler);
 		editorButtons.add(rdbtnAddEvent);
 
-		JComboBox<String> eventLanguage = new JComboBox<String>();
-		eventLanguage.setBounds(816, 602, 151, 22);
-		for (String lang : Launcher.supportedLanguages)
-			eventLanguage.addItem(lang);
-		frmLevelEditor.getContentPane().add(eventLanguage);
-
 		JLabel lblEventLanguage = new JLabel("Notification Language:");
 		lblEventLanguage.setBounds(672, 605, 136, 16);
 		frmLevelEditor.getContentPane().add(lblEventLanguage);
@@ -418,7 +440,7 @@ public class Editor {
 		btnEditEventScript.addActionListener(new ActionListener() {
 
 			public void actionPerformed(ActionEvent e) {
-				new TextEditor(frmLevelEditor);
+				new TextEditor(frmLevelEditor, notifiers, notifX, notifY);
 			}
 		});
 		btnEditEventScript.setBounds(816, 632, 151, 25);
@@ -429,6 +451,10 @@ public class Editor {
 		separator.setOrientation(SwingConstants.VERTICAL);
 		separator.setBounds(547, 602, 1, 56);
 		frmLevelEditor.getContentPane().add(separator);
+
+		JLabel lblLang = new JLabel(Launcher.lang);
+		lblLang.setBounds(816, 605, 151, 16);
+		frmLevelEditor.getContentPane().add(lblLang);
 
 		frmLevelEditor.pack();
 	}

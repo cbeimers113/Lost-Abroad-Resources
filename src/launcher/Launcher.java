@@ -17,11 +17,14 @@ public class Launcher extends Application {
 
 	public static String lang;
 
+	private static boolean noUpdate;
+
 	public static final String[] supportedLanguages = new String[] {
 			"English", "Esperanto", "Frisian"
 	};
 
-	public static void begin() {
+	public static void begin(boolean noUpdate) {
+		Launcher.noUpdate = noUpdate;
 		launch();
 	}
 
@@ -31,6 +34,7 @@ public class Launcher extends Application {
 		Button startButton = new Button("Start");
 		Button exitButton = new Button("Close");
 		Button editorLaunch = new Button("Level Editor");
+		Button forceUpdate = new Button("Force Update");
 		Label langLabel = new Label("Language:");
 		Label credits = new Label("Created by Chris Beimers for Carleton University");
 		ListView<String> languages = new ListView<String>();
@@ -48,7 +52,10 @@ public class Launcher extends Application {
 		exitButton.setPrefSize(122, 20);
 
 		langLabel.relocate(10, 380);
-		credits.relocate(40, 260);
+		credits.relocate(40, 190);
+
+		forceUpdate.relocate(269, 260);
+		forceUpdate.setPrefSize(122, 20);
 
 		languages.relocate(100, 380);
 		languages.setPrefSize(290, 210);
@@ -58,7 +65,7 @@ public class Launcher extends Application {
 		languages.setItems(FXCollections.observableArrayList(supportedLanguages));
 		languages.getSelectionModel().select(0);
 
-		pane.getChildren().addAll(userName, startButton, editorLaunch, exitButton, langLabel, languages, credits);
+		pane.getChildren().addAll(userName, startButton, editorLaunch, exitButton, langLabel, languages, credits, forceUpdate);
 
 		Scene scene = new Scene(pane, 400, 600);
 
@@ -78,10 +85,20 @@ public class Launcher extends Application {
 		});
 
 		editorLaunch.setOnAction(e -> {
+			lang = languages.getSelectionModel().getSelectedItem();
 			primaryStage.hide();
 			new Editor();
 		});
 
+		forceUpdate.setOnAction(e -> {
+			ResourcesDownloader.getFiles();
+		});
+
 		userName.setOnAction(startButton.getOnAction());
+		lang = supportedLanguages[0];
+
+		ResourcesDownloader.init();
+
+		if (!noUpdate && ResourcesDownloader.needsUpdate() && ResourcesDownloader.getFiles() == 1) System.exit(1);
 	}
 }

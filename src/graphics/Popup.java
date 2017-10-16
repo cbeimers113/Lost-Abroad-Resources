@@ -17,7 +17,7 @@ public class Popup extends Entity {
 		messages = new ArrayList<Sprite>();
 	}
 
-	public void push(String text) {
+	public void say(String text) {
 		if (messages.size() >= 10) return;
 		messages.add(new Sprite(text, Color.yellow, Color.gray, 10));
 	}
