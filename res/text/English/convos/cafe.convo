@@ -1,6 +1,8 @@
 q~What would you like to order?
-a1~12 oz. Coffee........$0.50
-a2~512 ml. Water........$0.25
+a1~Chicken Club.........$2.50
+a2~Turkey Sandwich......$2.25
 a3~Fresh Biscuit........$1.50
 a4~Slice of Pie.........$2.00
 ans~3
+rmsg~Here you go! Have a nice day!
+wmsg~I'm sorry, you can't afford that.
